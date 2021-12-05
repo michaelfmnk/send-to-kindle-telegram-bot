@@ -46,7 +46,7 @@ func TestUnkindleBot_verifyConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &UnkindleBot{
+			b := &SendToKindleBot{
 				Token:     tt.fields.Token,
 				EmailFrom: tt.fields.EmailFrom,
 				EmailTo:   tt.fields.EmailTo,

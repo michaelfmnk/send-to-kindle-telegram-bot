@@ -1,13 +1,13 @@
 package main
 
 import (
+	"github.com/michaelfmnk/send-to-kindle-telegram-bot/bot"
 	"log"
 	"os"
-	"send-to-kindle-telegram-bot/bot"
 )
 
 func main() {
-	unkindleBot := bot.UnkindleBot{
+	unkindleBot := bot.SendToKindleBot{
 		Token:     os.Getenv("UBOT_TELEGRAM_TOKEN"),
 		EmailFrom: os.Getenv("UBOT_EMAIL_FROM"),
 		EmailTo:   os.Getenv("UBOT_EMAIL_TO"),

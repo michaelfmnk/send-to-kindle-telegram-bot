@@ -15,22 +15,24 @@ import (
 )
 
 const (
-	DefaultSmtpPort = "587"
-	TmpFilesPath    = "/files/"
+	defaultSmtpPort = "587"
+	tmpFilesPath    = "/files/"
 )
 
 var (
-	TokenNotSetError     = errors.New("token for telegram bot not set")
-	PasswordNotSetError  = errors.New("password for email not set")
-	EmailFromNotSetError = errors.New("emailfrom not set")
-	EmailToNotSetError   = errors.New("emailto not set")
+	ErrTokenNotSet     = errors.New("token for telegram bot not set")
+	ErrPasswordNotSet  = errors.New("password for email not set")
+	ErrEmailFromNotSet = errors.New("emailfrom not set")
+	ErrEmailToNotSet   = errors.New("emailto not set")
 
-	ConversionError = errors.New("could not convert file")
+	ErrConversion = errors.New("could not convert file")
+	ErrStartup    = errors.New("could not create telebot instance")
 
 	supportedFormats = []string{"doc", "docx", "rtf", "htm", "html", "txt", "mobi", "pdf"}
 )
 
-type UnkindleBot struct {
+// SendToKindleBot stores bot configuration
+type SendToKindleBot struct {
 	Token     string
 	EmailFrom string
 	EmailTo   string
@@ -39,7 +41,9 @@ type UnkindleBot struct {
 	Password  string
 }
 
-func (b *UnkindleBot) Start() error {
+// Start starts bot. It is blocking.
+// If there is an error during startup, returns it. Otherwise blocks
+func (b *SendToKindleBot) Start() error {
 	if err := b.verifyConfig(); err != nil {
 		return err
 	}
@@ -49,7 +53,7 @@ func (b *UnkindleBot) Start() error {
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		log.Fatal("could not create telebot instance", err)
+		return ErrStartup
 	}
 
 	bot.Handle(tb.OnDocument, b.documentHandler(bot))
@@ -58,14 +62,14 @@ func (b *UnkindleBot) Start() error {
 	return nil
 }
 
-func (b *UnkindleBot) documentHandler(bot *tb.Bot) func(msg *tb.Message) {
+func (b *SendToKindleBot) documentHandler(bot *tb.Bot) func(msg *tb.Message) {
 	return func(msg *tb.Message) {
 		doc := msg.Document
 		nameParts := strings.Split(doc.FileName, ".")
 		fileNameWithoutExtension := strings.Join(nameParts[:len(nameParts)-1], "")
 		extension := nameParts[len(nameParts)-1]
 
-		originalFilePath := TmpFilesPath + doc.FileName
+		originalFilePath := tmpFilesPath + doc.FileName
 		if err := bot.Download(&doc.File, originalFilePath); err != nil {
 			log.Println("could not download file", err)
 			respond(bot, msg, "Sorry. I could not download file")
@@ -74,7 +78,7 @@ func (b *UnkindleBot) documentHandler(bot *tb.Bot) func(msg *tb.Message) {
 
 		fileToSend := originalFilePath
 		if needToConvert(extension) {
-			outputFilePath := TmpFilesPath + fileNameWithoutExtension + ".mobi"
+			outputFilePath := tmpFilesPath + fileNameWithoutExtension + ".mobi"
 			if err := convert(originalFilePath, outputFilePath); err != nil {
 				log.Println("could not convert file", err)
 				respond(bot, msg, "Sorry. I could not convert file")
@@ -114,7 +118,7 @@ func convert(in, out string) error {
 		return err
 	}
 	if _, err := os.Stat(out); errors.Is(err, os.ErrNotExist) {
-		return ConversionError
+		return ErrConversion
 	}
 	return nil
 }
@@ -125,26 +129,26 @@ func removeSilently(path string) {
 	}
 }
 
-func (b *UnkindleBot) verifyConfig() error {
+func (b *SendToKindleBot) verifyConfig() error {
 	if b.Token == "" {
-		return TokenNotSetError
+		return ErrTokenNotSet
 	}
 	if b.Password == "" {
-		return PasswordNotSetError
+		return ErrPasswordNotSet
 	}
 	if b.EmailFrom == "" {
-		return EmailFromNotSetError
+		return ErrEmailFromNotSet
 	}
 	if b.EmailTo == "" {
-		return EmailToNotSetError
+		return ErrEmailToNotSet
 	}
 	if b.SmtpPort == "" {
-		b.SmtpPort = DefaultSmtpPort
+		b.SmtpPort = defaultSmtpPort
 	}
 	return nil
 }
 
-func (b *UnkindleBot) sendFileViaEmail(path string) error {
+func (b *SendToKindleBot) sendFileViaEmail(path string) error {
 	msg := email.NewMessage("", "")
 	msg.From = mail.Address{Name: "From", Address: b.EmailFrom}
 	msg.To = []string{b.EmailTo}
