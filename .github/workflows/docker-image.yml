@@ -1,0 +1,29 @@
+name: Docker Image CI
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$(date +%s)
+  
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Docker Login
+      uses: docker/login-action@v1.10.0
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag ${{ IMAGE_NAME }}
+    - name: Push the Docker image
+      run: docker push ${{ IMAGE_NAME }}
