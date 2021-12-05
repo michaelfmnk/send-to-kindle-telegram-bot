@@ -24,6 +24,6 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag ${{ IMAGE_NAME }}
+      run: docker build . --file Dockerfile --tag ${{ env.IMAGE_NAME }}
     - name: Push the Docker image
-      run: docker push ${{ IMAGE_NAME }}
+      run: docker push ${{ env.IMAGE_NAME }}
