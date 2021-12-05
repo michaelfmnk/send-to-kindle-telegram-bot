@@ -2,7 +2,7 @@ name: Docker Image CI
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$(date +%s)
+  IMAGE_NAME: ghcr.io/michaelfmnk/sendtokindle:$(date +%s)
   
 on:
   push:
