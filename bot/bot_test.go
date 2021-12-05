@@ -50,8 +50,8 @@ func TestUnkindleBot_verifyConfig(t *testing.T) {
 				Token:     tt.fields.Token,
 				EmailFrom: tt.fields.EmailFrom,
 				EmailTo:   tt.fields.EmailTo,
-				SmtpHost:  tt.fields.SmtpHost,
-				SmtpPort:  tt.fields.SmtpPort,
+				SMTPHost:  tt.fields.SmtpHost,
+				SMTPPort:  tt.fields.SmtpPort,
 				Password:  tt.fields.Password,
 			}
 			err := b.verifyConfig()

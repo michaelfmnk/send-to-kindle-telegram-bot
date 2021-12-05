@@ -15,19 +15,23 @@ import (
 )
 
 const (
-	defaultSmtpPort = "587"
+	defaultSMTPPort = "587"
 	tmpFilesPath    = "/files/"
 )
 
 var (
-	ErrTokenNotSet     = errors.New("token for telegram bot not set")
-	ErrPasswordNotSet  = errors.New("password for email not set")
-	ErrEmailFromNotSet = errors.New("emailfrom not set")
-	ErrEmailToNotSet   = errors.New("emailto not set")
+	// ErrNoToken - represents a validation error when Token not set
+	ErrNoToken = errors.New("token for telegram bot not set")
+	// ErrNoPassword - represents a validation error when Password not set
+	ErrNoPassword = errors.New("password for email not set")
+	// ErrNoEmailFrom - represents a validation error when EmailFrom not set
+	ErrNoEmailFrom = errors.New("emailfrom not set")
+	// ErrNoEmailTo - represents a validation error when EmailTo not set
+	ErrNoEmailTo = errors.New("emailto not set")
+	// ErrStartup - represents an error during bot initialization process
+	ErrStartup = errors.New("could not create telebot instance")
 
-	ErrConversion = errors.New("could not convert file")
-	ErrStartup    = errors.New("could not create telebot instance")
-
+	errConversion    = errors.New("could not convert file")
 	supportedFormats = []string{"doc", "docx", "rtf", "htm", "html", "txt", "mobi", "pdf"}
 )
 
@@ -36,8 +40,8 @@ type SendToKindleBot struct {
 	Token     string
 	EmailFrom string
 	EmailTo   string
-	SmtpHost  string
-	SmtpPort  string
+	SMTPHost  string
+	SMTPPort  string
 	Password  string
 }
 
@@ -118,7 +122,7 @@ func convert(in, out string) error {
 		return err
 	}
 	if _, err := os.Stat(out); errors.Is(err, os.ErrNotExist) {
-		return ErrConversion
+		return errConversion
 	}
 	return nil
 }
@@ -131,19 +135,19 @@ func removeSilently(path string) {
 
 func (b *SendToKindleBot) verifyConfig() error {
 	if b.Token == "" {
-		return ErrTokenNotSet
+		return ErrNoToken
 	}
 	if b.Password == "" {
-		return ErrPasswordNotSet
+		return ErrNoPassword
 	}
 	if b.EmailFrom == "" {
-		return ErrEmailFromNotSet
+		return ErrNoEmailFrom
 	}
 	if b.EmailTo == "" {
-		return ErrEmailToNotSet
+		return ErrNoEmailTo
 	}
-	if b.SmtpPort == "" {
-		b.SmtpPort = defaultSmtpPort
+	if b.SMTPPort == "" {
+		b.SMTPPort = defaultSMTPPort
 	}
 	return nil
 }
@@ -157,8 +161,8 @@ func (b *SendToKindleBot) sendFileViaEmail(path string) error {
 		return err
 	}
 
-	auth := smtp.PlainAuth("", b.EmailFrom, b.Password, b.SmtpHost)
-	addr := fmt.Sprintf("%s:%s", b.SmtpHost, b.SmtpPort)
+	auth := smtp.PlainAuth("", b.EmailFrom, b.Password, b.SMTPHost)
+	addr := fmt.Sprintf("%s:%s", b.SMTPHost, b.SMTPPort)
 	if err := email.Send(addr, auth, msg); err != nil {
 		return err
 	}
