@@ -12,6 +12,7 @@ func main() {
 		EmailFrom: os.Getenv("UBOT_EMAIL_FROM"),
 		EmailTo:   os.Getenv("UBOT_EMAIL_TO"),
 		SMTPHost:  os.Getenv("UBOT_SMTP_HOST"),
+		SMTPPort:  os.Getenv("UBOT_SMTP_PORT"),
 		Password:  os.Getenv("UBOT_PASSWORD"),
 	}
 	if err := unkindleBot.Start(); err != nil {

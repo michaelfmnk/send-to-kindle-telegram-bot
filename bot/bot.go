@@ -10,6 +10,7 @@ import (
 	"net/smtp"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -32,7 +33,7 @@ var (
 	ErrStartup = errors.New("could not create telebot instance")
 
 	errConversion    = errors.New("could not convert file")
-	supportedFormats = []string{"doc", "docx", "rtf", "htm", "html", "txt", "mobi", "pdf"}
+	supportedFormats = []string{"doc", "docx", "rtf", "htm", "html", "txt", "epub", "pdf"}
 )
 
 // SendToKindleBot stores bot configuration
@@ -69,23 +70,23 @@ func (b *SendToKindleBot) Start() error {
 func (b *SendToKindleBot) documentHandler(bot *tb.Bot) func(msg *tb.Message) {
 	return func(msg *tb.Message) {
 		doc := msg.Document
-		nameParts := strings.Split(doc.FileName, ".")
-		fileNameWithoutExtension := strings.Join(nameParts[:len(nameParts)-1], "")
-		extension := nameParts[len(nameParts)-1]
+		fileNameWithoutExtension, extension := splitFileName(doc.FileName)
 
 		originalFilePath := tmpFilesPath + doc.FileName
 		if err := bot.Download(&doc.File, originalFilePath); err != nil {
 			log.Println("could not download file", err)
 			respond(bot, msg, "Sorry. I could not download file")
+			return
 		}
 		defer removeSilently(originalFilePath)
 
 		fileToSend := originalFilePath
 		if needToConvert(extension) {
-			outputFilePath := tmpFilesPath + fileNameWithoutExtension + ".mobi"
+			outputFilePath := tmpFilesPath + fileNameWithoutExtension + ".epub"
 			if err := convert(originalFilePath, outputFilePath); err != nil {
 				log.Println("could not convert file", err)
 				respond(bot, msg, "Sorry. I could not convert file")
+				return
 			}
 			fileToSend = outputFilePath
 			defer removeSilently(outputFilePath)
@@ -94,6 +95,7 @@ func (b *SendToKindleBot) documentHandler(bot *tb.Bot) func(msg *tb.Message) {
 		if err := b.sendFileViaEmail(fileToSend); err != nil {
 			log.Println("could not send file", err)
 			respond(bot, msg, "Sorry. I could not send file")
+			return
 		}
 	}
 }
@@ -107,6 +109,11 @@ func needToConvert(extension string) bool {
 	return true
 }
 
+func splitFileName(name string) (base, ext string) {
+	ext = filepath.Ext(name)
+	return strings.TrimSuffix(name, ext), strings.TrimPrefix(strings.ToLower(ext), ".")
+}
+
 func respond(bot *tb.Bot, m *tb.Message, text string) {
 	if _, err := bot.Send(m.Sender, text); err != nil {
 		log.Println(fmt.Sprintf("could not send a message to %d", m.Sender.ID), err)
@@ -114,12 +121,9 @@ func respond(bot *tb.Bot, m *tb.Message, text string) {
 }
 
 func convert(in, out string) error {
-	cmd := exec.Command("ebook-convert", in, out)
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	if err := cmd.Wait(); err != nil {
-		return err
+	output, err := exec.Command("ebook-convert", in, out).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ebook-convert failed: %w: %s", err, output)
 	}
 	if _, err := os.Stat(out); errors.Is(err, os.ErrNotExist) {
 		return errConversion
